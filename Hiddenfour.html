@@ -1,0 +1,113 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Neural ASCII Patterns</title>
+<style>
+body{margin:0;font-family:monospace;background:#111;color:#eee;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh}
+#info-container{display:flex;justify-content:center;align-items:center;width:100vw;min-height:7vh;}
+#info{font-size:4vw;line-height:1.2;opacity:.88;transition:opacity .3s;text-align:center;max-width:90vw;}
+pre{font-size:5vw;line-height:1.1;letter-spacing:.1em;white-space:pre;max-width:100vw;overflow-x:auto;margin:0;padding:1em 0;text-align:center}
+@media(min-width:600px){
+  #info{font-size:1.5vw}
+  pre{font-size:2vw}
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0/dist/tf.min.js"></script>
+</head>
+<body>
+<div id="info-container"><div id="info"></div></div>
+<pre id="ascii"></pre>
+<script>
+const chars=" .:-=+*#%@";
+const nIn=8,nHid=4,nOut=16;
+let model;
+function makeModel(){
+ model=tf.sequential();
+ model.add(tf.layers.dense({
+  units:nHid,
+  inputShape:[nIn],
+  activation:'tanh',
+  useBias:true,
+  kernelInitializer:'glorotUniform',
+  biasInitializer:'zeros'
+ }));
+ model.add(tf.layers.dense({
+  units:nOut,
+  activation:'tanh',
+  useBias:true,
+  kernelInitializer:'glorotUniform',
+  biasInitializer:'zeros'
+ }));
+}
+function randomizeWeights(){
+ model.getWeights().forEach((w,i)=>{
+  let arr=Array.from(w.dataSync()).map(()=>Math.random()*2-1);
+  model.weights[i].val.assign(tf.tensor(arr,w.shape));
+ });
+}
+function robustNorm(arr){
+ let min=Infinity,max=-Infinity;
+ for(let v of arr)if(Number.isFinite(v)){if(v<min)min=v;if(v>max)max=v;}
+ if(!isFinite(min)||!isFinite(max))return arr.map(()=>0.5);
+ let d=max-min;if(d===0)return arr.map(()=>0);
+ return arr.map(v=>Number.isFinite(v)?(v-min)/d:0);
+}
+function genPattern(){
+ let x=tf.randomUniform([1,nIn],-1,1);
+ let y=Array.from(model.predict(x).dataSync());
+ let norm=robustNorm(y);
+ let pat=norm.map(v=>chars[Math.floor(v*(chars.length-1))]).join('');
+ return pat;
+}
+// --- Enhanced Dynamic Info Snippets ---
+const infoSnippets=[
+  "Hello! I am a Neural Network! Yunus calls me The Hidden Four.",
+ "This is a Neural network in action: 2 layers (1 hidden, 1 output).",
+ "Why 2 layers? Enough for rich patterns, but still fast.",
+ "Hidden units: 4. Each helps the network learn features.",
+ "Why 4 hidden units? Balances expressiveness and speed.",
+ "Inputs: 8, Outputs: 16. More outputs = more ASCII variety.",
+ "Activation: tanh. Why? It outputs -1 to 1, is zero-centered, and helps the network learn complex patterns.",
+ "tanh is better than sigmoid here: stronger gradients, faster convergence.",
+ "Weights are randomized each cycle for new patterns.",
+ "ASCII charset: .:-=+*#%@ for smooth visual gradients.",
+ "Why TensorFlow.js? Runs neural nets right in your browser, fast and private.",
+ "TensorFlow.js uses your device's GPU for speed.",
+ "No data leaves your device—privacy by design.",
+ "All code is mobile-first: readable and responsive.",
+ "No user input needed—just watch the patterns evolve!",
+  "Convergence means weights in the neural net no longer change after some point. Aka. Reaching a stable state.",
+  "Hidden Units are like hidden layers but they mean the neurons in a hidden layer instead of the whole.",
+"Yunus Emre Vurgun really loves ASCII characters it seems...",
+"This is a fully open-source frontend code, feel free to modify it.",
+"Use your browser to edit the layers, functions, and these text!",
+"You can turn this HTML file into a better version than Yunus!",
+"Give it a shot Anon!"
+];
+let infoIdx=0,infoTimeout;
+function calculateDisplayTime(nChars, baseTime=1.0, secsPerChar=0.048){
+ return baseTime + nChars * secsPerChar;
+}
+function rotateInfo(){
+ const info=document.getElementById('info');
+ info.style.opacity=0.5;
+ clearTimeout(infoTimeout);
+ setTimeout(()=>{
+  let txt=infoSnippets[infoIdx];
+  info.textContent=txt;
+  info.style.opacity=0.88;
+  let t=calculateDisplayTime(txt.length)*1000;
+  infoIdx=(infoIdx+1)%infoSnippets.length;
+  infoTimeout=setTimeout(rotateInfo,t);
+ },200);
+}
+function loop(){
+ randomizeWeights();
+ let p=genPattern();
+ document.getElementById('ascii').textContent=p;
+ setTimeout(loop,500);
+}
+makeModel();
+rotateInfo();
+loop();
+</script>
+</body></html>
